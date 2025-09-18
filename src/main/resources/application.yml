@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: mqttv5demo
+  integration:
+    management:
+      # Show full message headers temporarily
+      default-logging-enabled: true
+
+logging:
+  level:
+    org.springframework.integration: INFO
+    org.springframework.integration.mqtt: INFO
+    org.springframework.integration.channel: INFO
+    org.eclipse.paho.mqttv5.client: INFO
+    reactor.netty: INFO
