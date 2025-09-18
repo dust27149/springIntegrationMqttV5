@@ -13,3 +13,43 @@ logging:
     org.springframework.integration.channel: INFO
     org.eclipse.paho.mqttv5.client: INFO
     reactor.netty: INFO
+# MQTT 配置
+mqtt:
+  # MQTT Broker配置
+  broker: tcp://localhost:1883
+  # MQTT 用户名
+  username: username
+  # MQTT 密码
+  password: password
+  # MQTT 客户端ID（订阅）
+  client-id-sub: mqttSub
+  # MQTT 客户端ID（发布）
+  client-id-pub: mqttPub
+  # 连接超时时间（秒）
+  connection-timeout: 10
+  # 心跳间隔时间（秒）
+  keep-alive-interval: 20
+  # 是否自动重连
+  automatic-reconnect: true
+  # 是否清除会话
+  clean-start: false
+  # 最大消息接收数量
+  receive-max: 100
+  # 共享消息分组ID
+  group-id: groupId
+  # 默认发布主题
+  default-topic-to-pub: topic/to/publish
+  # 默认订阅主题，多个主题用逗号分隔
+  default-topic-to-sub: thing/product/+/osd,thing/product/+/state,thing/product/+/services_reply,thing/product/+/events,thing/product/+/requests,sys/product/+/status,thing/product/+/property/set_reply,thing/product/+/drc/up
+  # 消息发布的默认服务质量
+  qos: 1
+  # 入站消息线程池配置
+  inbound-thread:
+    # 核心线程数
+    core-pool-size: 20
+    # 最大线程数
+    max-pool-size: 50
+    # 线程队列容量
+    queue-capacity: 2000
+    # 线程存活时间，单位：秒
+    keep-alive: 120
