@@ -32,8 +32,18 @@ public class MqttMessageRouter extends AbstractMessageRouter {
         Object payload = message.getPayload();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
         String time = sdf.format(message.getHeaders().getTimestamp());
-        log.info("{} topic<{}> Received MQTT message: {}", time, topic,
-                new String((byte[]) payload, StandardCharsets.UTF_8));
+
+        String text;
+        if (payload instanceof byte[] bytes) {
+            text = new String(bytes, StandardCharsets.UTF_8);
+        } else if (payload instanceof String s) {
+            text = s;
+        } else {
+            text = String.valueOf(payload);
+        }
+        log.info("{} topic<{}> Received MQTT message (payloadType={} size={}): {}", time, topic,
+                payload == null ? "null" : payload.getClass().getSimpleName(),
+                payload instanceof byte[] b ? b.length : text.length(), text);
 
         MqttMessageEnums topicEnum = MqttMessageEnums.find(topic);
         MessageChannel bean = (MessageChannel) applicationContext.getBean(topicEnum.getBeanName());
