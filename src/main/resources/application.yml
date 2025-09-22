@@ -5,6 +5,10 @@ spring:
     management:
       # Show full message headers temporarily
       default-logging-enabled: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
 logging:
   level:
@@ -13,6 +17,14 @@ logging:
     org.springframework.integration.channel: INFO
     org.eclipse.paho.mqttv5.client: INFO
     reactor.netty: INFO
+# Correlation (Redis) distributed reply waiting config
+correlation:
+  redis:
+    # 置 true 启用 RedisCorrelationManager，false 使用 InMemoryCorrelationManager
+    enabled: true       
+    channel: mqtt:correlation:reply
+    key-prefix: "mqtt:correlation:tid:"
+    default-ttl-millis: 30000
 # MQTT 配置
 mqtt:
   useMqttv3: false

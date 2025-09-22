@@ -1,26 +1,29 @@
 package com.example.dust.mqttv5demo.mqtt;
 
-import java.util.Objects;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.springframework.context.annotation.Configuration;
-import org.springframework.util.StringUtils;
-
+import com.alibaba.fastjson.JSON;
+import com.example.dust.mqttv5demo.mqtt.correlation.CorrelationManager;
 import com.example.dust.mqttv5demo.mqtt.defaults.CommonTopicRequest;
 import com.example.dust.mqttv5demo.mqtt.defaults.CommonTopicResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.example.dust.mqttv5demo.mqtt.correlation.CorrelationTimeoutException;
 import jakarta.annotation.Resource;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
-@Configuration
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+
+@Component
 public class MqttPublisher {
 
     @Resource
     IMqttMessageGateway messageGateway;
     @Resource
     ObjectMapper objectMapper;
+    @Resource
+    CorrelationManager correlationManager;
 
     public void publish(String payload) {
         messageGateway.publish(payload);
@@ -30,45 +33,113 @@ public class MqttPublisher {
         messageGateway.publish(topic, payload);
     }
 
-    public void publish(String topic, Object payload) {
+    /**
+     * 发送并等待回复（阻塞），内部委托给异步方法后 join。
+     * 
+     * @param topic      主题
+     * @param request    请求数据
+     * @param clazz      响应数据类型
+     * @param retryCount 重试次数（额外发送次数 = retryCount，尝试总次数 = retryCount+1）
+     * @param timeout    超时时间（毫秒）
+     */
+    private <T> CommonTopicResponse<T> publishWithReply(String topic, CommonTopicRequest<T> request, Class<T> clazz,
+            int retryCount, long timeout) {
         try {
-            messageGateway.publish(topic, objectMapper.writeValueAsString(payload));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("payload类型异常", e);
+            return publishWithReplyAsync(topic, request, clazz, retryCount, timeout).join();
+        } catch (CompletionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException runtime) {
+                throw runtime; // 保持原始运行时异常（如 CorrelationTimeoutException）
+            }
+            throw new RuntimeException(cause);
         }
     }
 
     /**
-     * 发送消息并等待回复
+     * 异步发送并等待回复（返回 CompletableFuture, 不阻塞调用线程）。
      * 
-     * @param <T>        消息内容类型
-     * @param clazz      消息内容类型Class
      * @param topic      主题
-     * @param request    请求消息
-     * @param retryCount 重试次数
-     * @param timeout    超时时间，单位：毫秒
-     * @return 如果在超时时间内收到了回复消息，则返回消息内容，否则会重试，重试失败后返回null
+     * @param request    请求数据
+     * @param clazz      响应数据类型
+     * @param retryCount 重试次数（额外发送次数 = retryCount，尝试总次数 = retryCount+1）
+     * @param timeout    超时时间（毫秒）
+     * 
      */
-    public <T> CommonTopicResponse<T> publishWithReply(Class<T> clazz, String topic, CommonTopicRequest<T> request,
-            int retryCount, long timeout) {
-        AtomicInteger time = new AtomicInteger(0);
-        boolean hasBid = StringUtils.hasText(request.getBid());
-        while (time.getAndIncrement() <= retryCount) {
-            // 如果用户未指定bid，则需要生成一个唯一的bid
-            request.setBid(hasBid ? request.getBid() : UUID.randomUUID().toString());
-            this.publish(topic, request);
-            // 此处会阻塞等待消息，直到超时或者收到消息
-            CommonTopicResponse<?> receiver = Chan.getData(request.getTid(), timeout);
-            // 如果超时前收到了消息，则需要匹配 tid 和 bid。
-            if (Objects.nonNull(receiver)
-                    && receiver.getTid().equals(request.getTid())
-                    && receiver.getBid().equals(request.getBid())) {
-                return objectMapper.convertValue(receiver,
-                        objectMapper.getTypeFactory().constructParametricType(CommonTopicResponse.class, clazz));
-            }
-            // 如果超时仍未收到消息，则会重试。每次重试时，tid都需要重新生成。
-            request.setTid(UUID.randomUUID().toString());
+    private <T> CompletableFuture<CommonTopicResponse<T>> publishWithReplyAsync(String topic,
+            CommonTopicRequest<T> request, Class<T> clazz, int retryCount, long timeout) {
+        final boolean userProvidedBid = StringUtils.hasText(request.getBid());
+        if (!userProvidedBid) {
+            request.setBid(UUID.randomUUID().toString());
         }
-        return null;
+        int attempts = retryCount + 1;
+        CompletableFuture<CommonTopicResponse<T>> overall = new CompletableFuture<>();
+
+        attemptSend(clazz, topic, request, userProvidedBid, attempts, 1, timeout, overall);
+        return overall;
+    }
+
+    private <T> void attemptSend(Class<T> clazz, String topic, CommonTopicRequest<T> request, boolean userProvidedBid,
+            int totalAttempts, int currentAttempt, long timeout, CompletableFuture<CommonTopicResponse<T>> overall) {
+        if (overall.isDone()) {
+            return; // 已完成则不再继续
+        }
+        request.setTid(UUID.randomUUID().toString());
+        if (!userProvidedBid && currentAttempt > 1) {
+            request.setBid(UUID.randomUUID().toString());
+        }
+        CompletableFuture<CommonTopicResponse<?>> future = correlationManager.register(request.getTid(), timeout);
+        // 发送
+        this.publish(topic, JSON.toJSONString(request));
+        // 链接 future
+        future.whenComplete((resp, ex) -> {
+            if (overall.isDone())
+                return; // 已完成则不再继续
+            if (ex != null) {
+                Throwable cause = (ex instanceof CompletionException) ? ex.getCause() : ex;
+                // 超时：若还有剩余尝试则重试，否则抛出
+                if (cause instanceof CorrelationTimeoutException) {
+                    if (currentAttempt < totalAttempts) {
+                        attemptSend(clazz, topic, request, userProvidedBid, totalAttempts, currentAttempt + 1, timeout,
+                                overall);
+                    } else {
+                        overall.completeExceptionally(cause);
+                    }
+                } else {
+                    // 其他异常直接结束
+                    overall.completeExceptionally(cause);
+                }
+                return;
+            }
+
+            // ex == null
+            if (resp == null) {
+                // 未得到响应（可能被取消等），按失败逻辑处理
+                if (currentAttempt < totalAttempts) {
+                    attemptSend(clazz, topic, request, userProvidedBid, totalAttempts, currentAttempt + 1, timeout,
+                            overall);
+                } else {
+                    overall.completeExceptionally(
+                            new IllegalStateException("No response after attempts: " + totalAttempts));
+                }
+                return;
+            }
+
+            // 校验 tid/bid
+            if (!request.getTid().equals(resp.getTid()) || !request.getBid().equals(resp.getBid())) {
+                if (currentAttempt < totalAttempts) {
+                    attemptSend(clazz, topic, request, userProvidedBid, totalAttempts, currentAttempt + 1, timeout,
+                            overall);
+                } else {
+                    overall.completeExceptionally(
+                            new IllegalStateException("Mismatched correlation data after attempts: " + totalAttempts));
+                }
+                return;
+            }
+
+            // 成功
+            CommonTopicResponse<T> casted = objectMapper.convertValue(resp, objectMapper.getTypeFactory()
+                    .constructParametricType(CommonTopicResponse.class, clazz));
+            overall.complete(casted);
+        });
     }
 }
