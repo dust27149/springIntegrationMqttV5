@@ -23,13 +23,12 @@ logging:
     org.springframework.integration.channel: INFO
     org.eclipse.paho.mqttv5.client: INFO
     reactor.netty: INFO
-# Correlation (Redis) distributed reply waiting config
-correlation:
+replyTracker:
   redis:
-    # 置 true 启用 RedisCorrelationManager，false 使用 InMemoryCorrelationManager
-    enabled: true       
-    channel: mqtt:correlation:reply
-    key-prefix: "mqtt:correlation:tid:"
+    # 置 true 启用 RedisReplyTracker，false 使用 InMemoryReplyTracker
+    enabled: true
+    channel: mqtt:replyTracker
+    key-prefix: "mqtt:replyTracker:tid:"
     default-ttl-millis: 30000
 # MQTT 配置
 mqtt:
