@@ -23,6 +23,7 @@ logging:
     org.springframework.integration.channel: INFO
     org.eclipse.paho.mqttv5.client: INFO
     reactor.netty: INFO
+
 replyTracker:
   redis:
     # 置 true 启用 RedisReplyTracker，false 使用 InMemoryReplyTracker

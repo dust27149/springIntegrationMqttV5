@@ -28,37 +28,45 @@ public class MqttChannels {
     private int queueCapacity;
 
     // 入站通道，接收MQTT消息
-    public static final String INBOUND = "inboundChannel";
-    public static final String INBOUND_DEFAULT = "inboundChannel_default";
+    public static final String INBOUND = "inbound";
+    public static final String INBOUND_DEFAULT = "inbound_default";
 
     // 出站通道，发送MQTT消息
-    public static final String OUTBOUND = "outboundChannel";
-    public static final String OUTBOUND_DEFAULT = "outboundChannel_default";
+    public static final String OUTBOUND = "outbound";
+    public static final String OUTBOUND_DEFAULT = "outbound_default";
 
     // 业务通道，做业务处理
     // OSD通道，接收设备上报的在线状态数据
-    public static final String INBOUND_OSD = "inboundChannel_osd";
+    public static final String INBOUND_OSD = "inbound_osd";
     // state通道，接收设备上报的属性状态数据并回复
-    public static final String INBOUND_STATE = "inboundChannel_state";
-    public static final String OUTBOUND_STATE_REPLY = "outboundChannel_state_reply";
+    public static final String INBOUND_STATE = "inbound_state";
+    public static final String OUTBOUND_STATE_REPLY = "outbound_state_reply";
     // services通道，调用设备能力，接收设备回复
-    public static final String OUTBOUND_SERVICES = "outboundChannel_services";
-    public static final String INBOUND_SERVICES_REPLY = "inboundChannel_services_reply";
+    public static final String OUTBOUND_SERVICES = "outbound_services";
+    public static final String INBOUND_SERVICES_REPLY = "inbound_services_reply";
     // events通道，接收设备上报的事件数据并回复
-    public static final String INBOUND_EVENTS = "inboundChannel_events";
-    public static final String OUTBOUND_EVENTS_REPLY = "outboundChannel_events_reply";
+    public static final String INBOUND_EVENTS = "inbound_events";
+    public static final String INBOUND_EVENTS_DEFAULT = "inbound_events_default";
+    public static final String INBOUND_EVENTS_AIRSENESE_WARNING = "inbound_events_airsenese_warning";
+    public static final String OUTBOUND_EVENTS_REPLY = "outbound_events_reply";
     // requests通道，接收设备上报的请求数据并回复
-    public static final String INBOUND_REQUESTS = "inboundChannel_requests";
-    public static final String OUTBOUND_REQUESTS_REPLY = "outboundChannel_requests_reply";
+    public static final String INBOUND_REQUESTS = "inbound_requests";
+    public static final String INBOUND_REQUESTS_DEFAULT = "inbound_requests_default";
+    public static final String INBOUND_REQUESTS_AIRPORT_BIND_STATUS = "inbound_requests_airport_bind_status";
+    public static final String INBOUND_REQUESTS_AIRPORT_ORGANIZATION_GET = "inbound_requests_airport_organization_get";
+    public static final String INBOUND_REQUESTS_AIRPORT_ORGANIZATION_BIND = "inbound_requests_airport_organization_bind";
+    public static final String INBOUND_REQUESTS_CONFIG = "inbound_requests_config";
+    public static final String INBOUND_REQUESTS_STORAGE_CONFIG_GET = "inbound_requests_storage_config_get";
+    public static final String OUTBOUND_REQUESTS_REPLY = "outbound_requests_reply";
     // status通道，接收设备上报的系统状态数据并回复
-    public static final String INBOUND_STATUS = "inboundChannel_status";
-    public static final String OUTBOUND_STATUS_REPLY = "outboundChannel_status_reply";
+    public static final String INBOUND_STATUS = "inbound_status";
+    public static final String OUTBOUND_STATUS_REPLY = "outbound_status_reply";
     // property通道，设置设备属性，接收设备回复
-    public static final String OUTBOUND_PROPERTY_SET = "outboundChannel_property_set";
-    public static final String INBOUND_PROPERTY_SET_REPLY = "inboundChannel_property_set_reply";
+    public static final String OUTBOUND_PROPERTY_SET = "outbound_property_set";
+    public static final String INBOUND_PROPERTY_SET_REPLY = "inbound_property_set_reply";
     // DRC通道，接收设备上报的DRC数据和发送DRC控制命令
-    public static final String INBOUND_DRC_UP = "inboundChannel_drc_up";
-    public static final String OUTBOUND_DRC_DOWN = "outboundChannel_drc_down";
+    public static final String INBOUND_DRC_UP = "inbound_drc_up";
+    public static final String OUTBOUND_DRC_DOWN = "outbound_drc_down";
 
     @Bean(name = MqttChannels.INBOUND)
     public MessageChannel inboundChannel() {
