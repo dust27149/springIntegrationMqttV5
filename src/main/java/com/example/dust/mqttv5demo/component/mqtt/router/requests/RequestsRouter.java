@@ -31,18 +31,18 @@ public class RequestsRouter {
     MqttPublisher mqttPublisher;
 
     @Bean
-    public IntegrationFlow eventRouterFlow() {
+    public IntegrationFlow requestsRouterFlow() {
         return IntegrationFlow.from(MqttChannels.INBOUND_EVENTS)
                 .<byte[], RequestsTopicRequest<?>>transform(bytes -> {
                     try {
-                        log.debug("requestRouterFlows收到消息: {}", new String(bytes));
+                        log.info("requestRouterFlows收到消息: {}", new String(bytes));
                         RequestsTopicRequest<Object> req = objectMapper.readValue(bytes,
-                                new TypeReference<>() {
+                                new TypeReference<RequestsTopicRequest<Object>>() {
 
                                 });
                         req.setData(objectMapper.convertValue(req.getData(),
                                 RequestsMethodEnums.find(req.getMethod()).getClazz()));
-                        log.debug("requestRouter转换消息成功: {}", req);
+                        log.info("requestRouter转换消息成功: {}", req);
                         return req;
                     } catch (Exception e) {
                         log.error("requestRouter转换消息失败: {}", e.getMessage());
@@ -65,8 +65,8 @@ public class RequestsRouter {
 
     @ServiceActivator(inputChannel = MqttChannels.OUTBOUND_REQUESTS_REPLY)
     public void outboundRequestsReply(RequestsTopicRequest<?> message, MessageHeaders header) {
-        log.debug("[requests] Reply消息: {}", message);
-        
+        log.info("[requests] Reply消息: {}", message);
+
         JSONObject data = new JSONObject();
         data.put("result", "put data here");
 

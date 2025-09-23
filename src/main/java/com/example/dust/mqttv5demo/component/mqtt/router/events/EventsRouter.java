@@ -36,14 +36,14 @@ public class EventsRouter {
         return IntegrationFlow.from(MqttChannels.INBOUND_EVENTS)
                 .<byte[], EventsTopicRequest<?>>transform(bytes -> {
                     try {
-                        log.debug("eventRouterFlows收到消息: {}", new String(bytes));
+                        log.info("eventRouterFlows收到消息: {}", new String(bytes));
                         EventsTopicRequest<Object> req = objectMapper.readValue(bytes,
-                                new TypeReference<>() {
+                                new TypeReference<EventsTopicRequest<Object>>() {
 
                                 });
                         req.setData(objectMapper.convertValue(req.getData(),
                                 EventsMethodEnums.find(req.getMethod()).getClazz()));
-                        log.debug("eventRouter转换消息成功: {}", req);
+                        log.info("eventRouter转换消息成功: {}", req);
                         return req;
                     } catch (Exception e) {
                         log.error("eventRouter转换消息失败: {}", e.getMessage());
@@ -53,7 +53,7 @@ public class EventsRouter {
                 .<EventsTopicRequest<?>, EventsMethodEnums>route(
                         receiver -> EventsMethodEnums.find(receiver.getMethod()),
                         mapping -> Arrays.stream(EventsMethodEnums.values())
-                                .forEach(e -> mapping.channelMapping(e, MqttChannels.OUTBOUND_EVENTS_REPLY)))
+                                .forEach(e -> mapping.channelMapping(e, e.getChannel())))
                 .get();
     }
 
@@ -67,15 +67,15 @@ public class EventsRouter {
     @ServiceActivator(inputChannel = MqttChannels.INBOUND_EVENTS_AIRSENESE_WARNING, outputChannel = MqttChannels.OUTBOUND_EVENTS_REPLY)
     public EventsTopicRequest<AirsenseWarning[]> inboundEventsAirsenseWarning(
             EventsTopicRequest<AirsenseWarning[]> message) {
-        log.debug("[events] AirsenseWarning收到消息: {}", message);
+        log.info("[events] AirsenseWarning收到消息: {}", message);
         return message;
     }
 
     @ServiceActivator(inputChannel = MqttChannels.OUTBOUND_EVENTS_REPLY)
     public void outboundEventsReply(EventsTopicRequest<?> message, MessageHeaders header) {
-        log.debug("[events] Reply收到消息: {}", message);
+        log.info("[events] Reply收到消息: {}", message);
         if (message.getNeedReply() == null || message.getNeedReply() == 0) {
-            log.debug("不需要回复消息");
+            log.info("不需要回复消息");
             return;
         }
 
