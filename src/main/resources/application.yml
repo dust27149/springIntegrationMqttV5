@@ -24,18 +24,11 @@ logging:
     org.eclipse.paho.mqttv5.client: INFO
     reactor.netty: INFO
 
-replyTracker:
-  redis:
-    # 置 true 启用 RedisReplyTracker，false 使用 InMemoryReplyTracker
-    enabled: true
-    channel: mqtt:replyTracker
-    key-prefix: "mqtt:replyTracker:tid:"
-    default-ttl-millis: 30000
 # MQTT 配置
 mqtt:
   useMqttv3: false
   # MQTT Broker配置
-  broker: tcp://localhost:1883
+  broker: tcp://192.168.9.148:10883
   # MQTT 用户名
   username: username
   # MQTT 密码
@@ -59,7 +52,7 @@ mqtt:
   # 默认发布主题
   default-topic-to-pub: topic/to/publish
   # 默认订阅主题，多个主题用逗号分隔
-  default-topic-to-sub: thing/product/+/osd,thing/product/+/state,thing/product/+/services_reply,thing/product/+/events,thing/product/+/requests,sys/product/+/status,thing/product/+/property/set_reply,thing/product/+/drc/up
+  default-topic-to-sub: thing/product/+/osd,thing/product/+/state,thing/product/+/state_reply,thing/product/+/services,thing/product/+/services_reply,thing/product/+/events,thing/product/+/events_reply,thing/product/+/requests,thing/product/+/requests_reply,sys/product/+/status,sys/product/+/status_reply,thing/product/+/property/set,thing/product/+/property/set_reply,thing/product/+/drc/up,thing/product/+/drc/down
   # 消息发布的默认服务质量，默认2（只接收一次）
   qos: 2
   # 入站消息线程池配置
@@ -72,3 +65,25 @@ mqtt:
     queue-capacity: 2000
     # 线程存活时间，单位：秒
     keep-alive: 120
+  tracker:
+    # redis/memory 回复跟踪器配置
+    provider: redis
+    channel: mqtt:tracker
+    key-prefix: "mqtt:tracker:id:"
+    default-ttl-millis: 30000
+storage:
+  provider: minio
+  endpoint: http://localhost:9000
+  accessKey: minioadmin
+  secretKey: minioadmin
+  region: us-east-1
+  bucket: minio
+  roleArn:
+  roleSessionName:
+  expire: 3600
+sdk:
+  appId: your_app_id
+  appKey: your_app_key
+  appSecret: your_app_secret
+  ntpServer: ntp1.aliyun.com
+  ntpPort: 123
